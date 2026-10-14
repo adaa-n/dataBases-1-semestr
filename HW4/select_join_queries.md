@@ -1,31 +1,128 @@
-# HW4. SELECT + CASE и JOIN
+# HW4: запросы SELECT и JOIN
 
-## Подготовка данных
+# Блок 1: SELECT
+
+## 1. Выборка всех данных из таблицы
+
+### Запрос 1.1
+Вывести всю информацию о животных.
 
 ```sql
--- приют без животных и без координатора
-insert into shelters (name, address) values ('Пушистый хвост', 'г. Екатеринбург, ул. Мира, 7');
-
--- животное, которое пока не привязано ни к какому приюту
-insert into animals (name, species, age, status, shelter_id) values ('Бусинка', 'кошка', 2, 'available', null);
-
--- волонтёр без смен
-insert into volunteers (name, phone) values ('Орлова Алина Максимовна', '+79995556600');
-
--- смена, на которую ещё не назначен волонтёр
-insert into shifts (volunteer_id, date, start_time, end_time, role) values (null, '2024-03-05', '09:00', '13:00', 'выгул');
-
--- посетитель, который ещё не подавал заявок
-insert into visitors (name, phone, email, registration_year) values ('Козлова Анна Ильинична', '+79998889900', 'kozlova@mail.ru', 2024);
+select *
+from animals;
 ```
+![1.1.png](images/1.1.png)
 
----
+### Запрос 1.2
+Вывести всю информацию о приютах.
 
-# Блок 1. SELECT + CASE
+```sql
+select *
+from shelters;
+```
+![1.2.png](images/1.2.png)
 
-## 1.1. Категория животного по возрасту
+## 2. Выборка отдельных столбцов
 
-Что хотим получить: список животных (кличка и возраст) и вычисляемый столбец с категорией: если возраст < 3 — «молодой», иначе — «взрослый».
+### Запрос 2.1
+Вывести только клички и виды животных.
+
+```sql
+select name, species
+from animals;
+```
+![2.1.png](images/2.1.png)
+
+### Запрос 2.2
+Вывести только имена и телефоны волонтёров.
+
+```sql
+select name, phone
+from volunteers;
+```
+![2.2.png](images/2.2.png)
+
+## 3. Присвоение новых имен столбцам при формировании выборки
+
+### Запрос 3.1
+Вывести клички и виды животных, переименовав столбцы на английский понятный вид.
+
+```sql
+select
+    name as animal_name,
+    species as animal_species
+from animals;
+```
+![3.1.png](images/3.1.png)
+
+### Запрос 3.2
+Вывести имена и почты посетителей с русскими названиями столбцов.
+
+```sql
+select
+    name as "ФИО",
+    email as "Электронная почта"
+from visitors;
+```
+![3.2.png](images/3.2.png)
+
+## 4. Выборка данных с созданием вычисляемого столбца
+
+### Запрос 4.1
+Вывести клички животных, их возраст и возраст в месяцах.
+
+```sql
+select
+    name,
+    age,
+    age * 12 as age_in_months
+from animals;
+```
+![4.1.png](images/4.1.png)
+
+### Запрос 4.2
+Вывести роль на смене и длительность смены (разница между временем окончания и начала).
+
+```sql
+select
+    role,
+    start_time,
+    end_time,
+    end_time - start_time as duration
+from shifts;
+```
+![4.2.png](images/4.2.png)
+
+## 5. Вычисляемые столбцы, математические функции
+
+### Запрос 5.1
+Вывести клички животных, возраст и квадратный корень из возраста, округлённый до двух знаков.
+
+```sql
+select
+    name,
+    age,
+    round(sqrt(age)::numeric, 2) as age_sqrt
+from animals;
+```
+![5.1.png](images/5.1.png)
+
+### Запрос 5.2
+Вывести длительность каждой смены в часах.
+
+```sql
+select
+    shifts_id,
+    role,
+    extract(epoch from (end_time - start_time)) / 3600 as hours
+from shifts;
+```
+![5.2.png](images/5.2.png)
+
+## 6. Вычисляемые столбцы, логические функции (CASE)
+
+### Запрос 6.1
+Вывести список животных (клички и возраст), а также добавить вычисляемый столбец с категорией: если возраст < 3 — «молодой», иначе «взрослый».
 
 ```sql
 select
@@ -35,24 +132,12 @@ select
         when age < 3 then 'молодой'
         else 'взрослый'
     end as age_category
-from animals
-order by animal_id;
+from animals;
 ```
+![6.1.png](images/6.1.png)
 
-**Результат:**
-
-| name | age | age_category |
-|---|---|---|
-| Барсик | 3 | взрослый |
-| Рекс | 2 | молодой |
-| Мурка | 5 | взрослый |
-| Дружок | 1 | молодой |
-| Бусинка | 2 | молодой |
-
-
-## 1.2. Статус заявки на русском языке
-
-Что хотим получить: id заявки, id животного и понятный статус на русском вместо английских `pending`, `approved`, `rejected`.
+### Запрос 6.2
+Вывести id заявки, id животного и понятный статус на русском языке (вместо английских pending, approved, rejected).
 
 ```sql
 select
@@ -65,147 +150,255 @@ select
         when status = 'rejected' then 'Отклонено'
         else 'Неизвестно'
     end as russian_status
-from adoption_applications
-order by application_id;
+from adoption_applications;
 ```
+![6.2.png](images/6.2.png)
 
-**Результат:**
+## 7. Выборка данных по условию
 
-| application_id | animal_id | original_status | russian_status |
-|---|---|---|---|
-| 1 | 1 | approved | Одобрено |
-| 2 | 2 | approved | Одобрено |
-| 3 | 3 | rejected | Отклонено |
-| 4 | 4 | pending | В обработке |
+### Запрос 7.1
+Вывести всех животных, которые доступны для усыновления.
 
+```sql
+select *
+from animals
+where status = 'available';
+```
+![7.1.png](images/7.1.png)
 
+### Запрос 7.2
+Вывести посетителей, зарегистрировавшихся в 2024 году.
 
----
+```sql
+select *
+from visitors
+where registration_year = 2024;
+```
+![7.2.png](images/7.2.png)
 
-# Блок 2. JOIN
+## 8. Выборка данных, логические операции (AND, OR, NOT)
 
-## 2.1. INNER JOIN
+### Запрос 8.1
+Вывести собак, которые доступны для усыновления (условие AND).
 
-`INNER JOIN` возвращает только те строки, для которых нашлась пара в обеих таблицах.
+```sql
+select *
+from animals
+where species = 'собака'
+  and status = 'available';
+```
+![8.1.png](images/8.1.png)
 
-### Запрос 2.1.1
+### Запрос 8.2
+Вывести заявки, которые ещё в обработке или были отклонены (условие OR).
 
-Что хотим получить: кличку животного и название приюта, в котором оно находится.
+```sql
+select *
+from adoption_applications
+where status = 'pending'
+   or status = 'rejected';
+```
+![8.2.png](images/8.2.png)
+
+## 9. Выборка данных, операторы BETWEEN, IN
+
+### Запрос 9.1
+Вывести животных, возраст которых от 2 до 4 лет включительно (BETWEEN).
+
+```sql
+select name, species, age
+from animals
+where age between 2 and 4;
+```
+![9.1.png](images/9.1.png)
+
+### Запрос 9.2
+Вывести животных, которые находятся в приютах с id 1 и 3 (IN).
+
+```sql
+select name, species, shelter_id
+from animals
+where shelter_id in (1, 3);
+```
+![9.2.png](images/9.2.png)
+
+## 10. Выборка данных с сортировкой
+
+### Запрос 10.1
+Вывести всех животных, начиная с самых старших (сортировка по убыванию).
+
+```sql
+select name, age
+from animals
+order by age desc;
+```
+![10.1.png](images/10.1.png)
+
+### Запрос 10.2
+Вывести животных по дате поступления в приют, от самых давних; при одинаковой дате — по кличке.
+
+```sql
+select name, arrival_date
+from animals
+order by arrival_date asc, name asc;
+```
+![10.2.png](images/10.2.png)
+
+## 11. Выборка данных, оператор LIKE
+
+### Запрос 11.1
+Вывести посетителей, имя которых начинается на букву «И».
+
+```sql
+select name, email
+from visitors
+where name like 'И%';
+```
+![11.1.png](images/11.1.png)
+
+### Запрос 11.2
+Вывести посетителей, у которых почта на домене mail.ru.
+
+```sql
+select name, email
+from visitors
+where email like '%@mail.ru';
+```
+![11.2.png](images/11.2.png)
+
+## 12. Выбор уникальных элементов столбца
+
+### Запрос 12.1
+Вывести все виды животных без повторений.
+
+```sql
+select distinct species
+from animals;
+```
+![12.1.png](images/12.1.png)
+
+### Запрос 12.2
+Вывести все статусы, которые встречаются в заявках, без повторений.
+
+```sql
+select distinct status
+from adoption_applications;
+```
+![12.2.png](images/12.2.png)
+
+## 13. Выбор ограниченного количества возвращаемых строк
+
+### Запрос 13.1
+Вывести двух самых старых животных.
+
+```sql
+select name, age
+from animals
+order by age desc
+limit 2;
+```
+![13.1.png](images/13.1.png)
+
+### Запрос 13.2
+Вывести три последние поданные заявки.
+
+```sql
+select application_id, application_date, status
+from adoption_applications
+order by application_date desc
+limit 3;
+```
+![13.2.png](images/13.2.png)
+
+# Блок 2: JOIN
+
+## 14. JOIN
+
+### Запрос 14.1
+Вывести кличку животного и название приюта, в котором оно находится.
 
 ```sql
 select
     a.name as animal_name,
     s.name as shelter_name
 from animals a
-inner join shelters s on a.shelter_id = s.shelter_id
-order by a.animal_id;
+join shelters s on a.shelter_id = s.shelter_id;
 ```
+![14.1.png](images/14.1.png)
 
-**Результат:**
+### Запрос 14.2
+Вывести имя волонтёра, дату смены и роль на смене.
 
-| animal_name | shelter_name |
-|---|---|
-| Барсик | Добрые руки |
-| Рекс | Добрые руки |
-| Мурка | Верный друг |
-| Дружок | Новый дом |
+```sql
+select
+    v.name as volunteer_name,
+    sh.date as shift_date,
+    sh.role
+from shifts sh
+join volunteers v on sh.volunteer_id = v.volunteer_id;
+```
+![14.2.png](images/14.2.png)
 
-Бусинка в результат не попала, так как у неё `shelter_id = null`.
+## 15. INNER JOIN
 
-
-
-### Запрос 2.1.2
-
-Что хотим получить: имя посетителя, подавшего заявку, кличку животного, на которое он претендует, и статус заявки (соединяем три таблицы).
+### Запрос 15.1
+Вывести имя посетителя, который подал заявку, ID животного, на которое он претендует, и статус заявки.
 
 ```sql
 select
     v.name as visitor_name,
-    a.name as animal_name,
+    ap.animal_id,
     ap.status
 from adoption_applications ap
-inner join visitors v on ap.visitor_id = v.visitor_id
-inner join animals a  on ap.animal_id = a.animal_id
-order by ap.application_id;
+inner join visitors v on ap.visitor_id = v.visitor_id;
 ```
+![15.1.png](images/15.1.png)
 
-**Результат:**
+### Запрос 15.2
+Вывести клички животных, на которых есть одобренные заявки.
 
-| visitor_name | animal_name | status |
-|---|---|---|
-| Иванова Мария Петровна | Барсик | approved |
-| Петров Сергей Николаевич | Рекс | approved |
-| Сидоров Павел Андреевич | Мурка | rejected |
-| Иванова Мария Петровна | Дружок | pending |
+```sql
+select
+    a.name as animal_name,
+    ap.application_date
+from animals a
+inner join adoption_applications ap on a.animal_id = ap.animal_id
+where ap.status = 'approved';
+```
+![15.2.png](images/15.2.png)
 
+## 16. Внешнее соединение: LEFT и RIGHT OUTER JOIN
 
+### LEFT OUTER JOIN
 
----
-
-## 2.2. LEFT OUTER JOIN
-
-`LEFT JOIN` возвращает все строки левой таблицы. Если пары в правой нет, на её месте будет `NULL`.
-
-### Запрос 2.2.1
-
-Что хотим получить: все приюты и привязанных к ним животных. Если в приюте нет животных, вместо клички будет `NULL`.
+#### Запрос 16.1
+Вывести все приюты и привязанных к ним животных. Если в приюте нет животных, вместо клички будет NULL.
 
 ```sql
 select
     s.name as shelter_name,
     a.name as animal_name
 from shelters s
-left join animals a on s.shelter_id = a.shelter_id
-order by s.shelter_id, a.animal_id;
+left join animals a on s.shelter_id = a.shelter_id;
 ```
+![16.1.png](images/16.1.png)
 
-**Результат:**
-
-| shelter_name | animal_name |
-|---|---|
-| Добрые руки | Барсик |
-| Добрые руки | Рекс |
-| Верный друг | Мурка |
-| Новый дом | Дружок |
-| Пушистый хвост | NULL |
-
-
-
-### Запрос 2.2.2
-
-Что хотим получить: всех посетителей и их заявки, включая тех, кто заявок ещё не подавал.
+#### Запрос 16.2
+Вывести всех животных и заявки на них. Если на животное нет заявок, статус будет NULL.
 
 ```sql
 select
-    v.name as visitor_name,
-    ap.application_id,
-    ap.status
-from visitors v
-left join adoption_applications ap on v.visitor_id = ap.visitor_id
-order by v.visitor_id, ap.application_id;
+    a.name as animal_name,
+    ap.status as application_status
+from animals a
+left join adoption_applications ap on a.animal_id = ap.animal_id;
 ```
+![16.2.png](images/16.2.png)
 
-**Результат:**
+### RIGHT OUTER JOIN
 
-| visitor_name | application_id | status |
-|---|---|---|
-| Иванова Мария Петровна | 1 | approved |
-| Иванова Мария Петровна | 4 | pending |
-| Петров Сергей Николаевич | 2 | approved |
-| Сидоров Павел Андреевич | 3 | rejected |
-| Козлова Анна Ильинична | NULL | NULL |
-
-
-
----
-
-## 2.3. RIGHT OUTER JOIN
-
-`RIGHT JOIN` возвращает все строки правой таблицы. Если пары в левой нет, на её месте будет `NULL`.
-
-### Запрос 2.3.1
-
-Что хотим получить: всех волонтёров и даты их смен. Волонтёр без смен тоже должен попасть в результат.
+#### Запрос 16.3
+Вывести всех волонтёров и их смены. Если у волонтёра нет смен, дата и время будут NULL.
 
 ```sql
 select
@@ -213,60 +406,52 @@ select
     sh.date as shift_date,
     sh.start_time
 from shifts sh
-right join volunteers v on sh.volunteer_id = v.volunteer_id
-order by v.volunteer_id, sh.date;
+right join volunteers v on sh.volunteer_id = v.volunteer_id;
 ```
+![16.3.png](images/16.3.png)
 
-**Результат:**
-
-| volunteer_name | shift_date | start_time |
-|---|---|---|
-| Смирнова Ольга Викторовна | 2024-03-01 | 09:00:00 |
-| Кузнецов Дмитрий Андреевич | 2024-03-02 | 13:00:00 |
-| Морозова Екатерина Игоревна | 2024-03-03 | 09:00:00 |
-| Волков Артём Сергеевич | 2024-03-04 | 17:00:00 |
-| Орлова Алина Максимовна | NULL | NULL |
-
-Смена от 2024-03-05 без волонтёра в результат не попала, так как она есть только в левой таблице.
-
-
-
-### Запрос 2.3.2
-
-Что хотим получить: все приюты и животных, причём таблица приютов стоит справа (поэтому приют без животных виден).
+#### Запрос 16.4
+Вывести всех животных и приюты так, чтобы таблица приютов (правая) была выведена полностью.
 
 ```sql
 select
     a.name as animal_name,
     s.name as shelter_name
 from animals a
-right join shelters s on a.shelter_id = s.shelter_id
-order by s.shelter_id, a.animal_id;
+right join shelters s on a.shelter_id = s.shelter_id;
 ```
+![16.4.png](images/16.4.png)
 
-**Результат:**
+### FULL OUTER JOIN
 
-| animal_name | shelter_name |
-|---|---|
-| Барсик | Добрые руки |
-| Рекс | Добрые руки |
-| Мурка | Верный друг |
-| Дружок | Новый дом |
-| NULL | Пушистый хвост |
+#### Запрос 16.5
+Связать приюты и координаторов через полное соединение: попадут и приюты без координатора, и координаторы без приюта.
 
-Результат такой же, как в запросе 2.2.1: `A right join B` — это то же самое, что `B left join A`.
+```sql
+select
+    s.name as shelter_name,
+    c.name as coordinator_name
+from shelters s
+full outer join coordinators c on s.shelter_id = c.shelter_id;
+```
+![16.5.png](images/16.5.png)
 
+#### Запрос 16.6
+Показать полное внешнее соединение волонтёров и смен.
 
+```sql
+select
+    v.name as volunteer_name,
+    sh.date as shift_date
+from volunteers v
+full outer join shifts sh on v.volunteer_id = sh.volunteer_id;
+```
+![16.6.png](images/16.6.png)
 
----
+## 17. Перекрестное соединение CROSS JOIN
 
-## 2.4. CROSS JOIN
-
-`CROSS JOIN` возвращает все возможные комбинации строк двух таблиц (декартово произведение). Условия соединения нет.
-
-### Запрос 2.4.1
-
-Что хотим получить: все возможные комбинации приютов и ролей на смене.
+### Запрос 17.1
+Получить все возможные комбинации приютов и ролей на смене.
 
 ```sql
 select
@@ -275,112 +460,54 @@ select
 from shelters s
 cross join (
     values ('выгул'), ('уборка'), ('кормление')
-) as r(role_name)
-order by s.shelter_id, r.role_name;
+) as r(role_name);
 ```
+![17.1.png](images/17.1.png)
 
-**Результат** (4 приюта × 3 роли = 12 строк):
-
-| shelter_name | role_name |
-|---|---|
-| Добрые руки | выгул |
-| Добрые руки | кормление |
-| Добрые руки | уборка |
-| Верный друг | выгул |
-| Верный друг | кормление |
-| Верный друг | уборка |
-| Новый дом | выгул |
-| Новый дом | кормление |
-| Новый дом | уборка |
-| Пушистый хвост | выгул |
-| Пушистый хвост | кормление |
-| Пушистый хвост | уборка |
-
-
-
-### Запрос 2.4.2
-
-Что хотим получить: все собаки в сочетании со всеми возможными статусами заявок.
+### Запрос 17.2
+Получить все возможные комбинации животных и статусов заявок.
 
 ```sql
 select
     a.name as animal_name,
-    st.status_name
+    st.status
 from animals a
 cross join (
     values ('pending'), ('approved'), ('rejected')
-) as st(status_name)
-where a.species = 'собака'
-order by a.animal_id, st.status_name;
+) as st(status);
 ```
+![17.2.png](images/17.2.png)
 
-**Результат** (2 собаки × 3 статуса = 6 строк):
+## 18. Запросы на выборку из нескольких таблиц
 
-| animal_name | status_name |
-|---|---|
-| Рекс | approved |
-| Рекс | pending |
-| Рекс | rejected |
-| Дружок | approved |
-| Дружок | pending |
-| Дружок | rejected |
-
-
-
----
-
-## 2.5. FULL OUTER JOIN
-
-`FULL OUTER JOIN` возвращает все строки из обеих таблиц. Где пары нет, подставляется `NULL` с соответствующей стороны.
-
-### Запрос 2.5.1
-
-Что хотим получить: все приюты и все животные: и приют без животных, и животное без приюта.
+### Запрос 18.1
+Вывести заявки с именем посетителя, кличкой животного и названием приюта, где это животное находится.
 
 ```sql
 select
+    v.name as visitor_name,
+    a.name as animal_name,
     s.name as shelter_name,
-    a.name as animal_name
-from shelters s
-full outer join animals a on s.shelter_id = a.shelter_id
-order by s.shelter_id, a.animal_id;
+    ap.status
+from adoption_applications ap
+join visitors v on ap.visitor_id = v.visitor_id
+join animals a on ap.animal_id = a.animal_id
+join shelters s on a.shelter_id = s.shelter_id;
 ```
+![18.1.png](images/18.1.png)
 
-**Результат:**
-
-| shelter_name | animal_name |
-|---|---|
-| Добрые руки | Барсик |
-| Добрые руки | Рекс |
-| Верный друг | Мурка |
-| Новый дом | Дружок |
-| Пушистый хвост | NULL |
-| NULL | Бусинка |
-
-
-
-### Запрос 2.5.2
-
-Что хотим получить: всех волонтёров и все смены: и волонтёра без смен, и смену без волонтёра.
+### Запрос 18.2
+Вывести волонтёров, их координаторов и приюты, в которых эти координаторы работают.
 
 ```sql
 select
     v.name as volunteer_name,
-    sh.date as shift_date,
-    sh.role
-from volunteers v
-full outer join shifts sh on v.volunteer_id = sh.volunteer_id
-order by v.volunteer_id, sh.date;
+    c.name as coordinator_name,
+    s.name as shelter_name
+from volunteer_coordinators vc
+join volunteers v on vc.volunteer_id = v.volunteer_id
+join coordinators c on vc.coordinator_id = c.coordinator_id
+join shelters s on c.shelter_id = s.shelter_id
+order by v.name;
 ```
-
-**Результат:**
-
-| volunteer_name | shift_date | role |
-|---|---|---|
-| Смирнова Ольга Викторовна | 2024-03-01 | уход за животными |
-| Кузнецов Дмитрий Андреевич | 2024-03-02 | выгул |
-| Морозова Екатерина Игоревна | 2024-03-03 | уборка |
-| Волков Артём Сергеевич | 2024-03-04 | кормление |
-| Орлова Алина Максимовна | NULL | NULL |
-| NULL | 2024-03-05 | выгул |
-
+![18.2.png](images/18.2.png)
